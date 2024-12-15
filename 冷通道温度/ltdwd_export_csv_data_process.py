@@ -115,7 +115,9 @@ def choose_from_20KT(KT_list: list, num: int) -> list:
     '''
     choice = []
     for i in range(len(KT_list)):
-        choice.append(random.sample(KT_list[i], num))  # 随机从一组服务器中选2个
+        # choice.append(random.sample(KT_list[i], num))  # 随机从一组服务器中选2个
+        choice.append((KT_list[i]))  # 随机从一组服务器中选2个
+
     return choice  # 返回随机选择的空调列表
 
 

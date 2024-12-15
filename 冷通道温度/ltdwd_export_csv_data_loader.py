@@ -13,9 +13,12 @@ import time
     定义202/203/205机房 所有连续csv文件路径
 '''
 # 202  csv数据 所在文件夹
-csv_file_JF_202="E:/lry/模型汇总/JF_202_test/"
+csv_file_JF_202 = "E:/qs/"
 # 203  csv数据 所在文件夹
-csv_file_JF_203="E:/lry/模型汇总/JF_203/"
+csv_file_JF_203 = "E:/qx/"
+
+csv_file_2022 = 'E:/qs/test/2022/'
+csv_file_2023 = 'E:/qs/test/2023/'
 
 class params_load():
     def __init__(self, JF_name: str, FWQ_name: str, past_num: int, maxORavg: str):
@@ -45,14 +48,18 @@ class params_load():
         self.KT_chosen = choose_from_20KT(self.KT_toFwq_list, 2)
 
     # 导入所有的csv文件
-    def all_csvs(self):
+    def all_csvs(self,year=0):
         '''
             导入所有的CSV文件并concat
 
             :return: concat后的训练数据
         '''
         # 202机房训练csv文件
-        if self.JF_name == '202':
+        if year == 2022:
+            csv_file_name = csv_file_2022
+        elif year == 2023:
+            csv_file_name = csv_file_2023
+        elif self.JF_name == '202':
             csv_file_name=csv_file_JF_202
         # 203机房训练csv文件
         elif self.JF_name == '203':
@@ -228,37 +235,39 @@ class params_load():
         return power_load
 
 
-def all_data(maxORavg: str, JF_num: str, FWQ_name: str, past_num: int,swwd_flag):  # 从csv数据中导出 需要特征 的全部数据
+def all_data(maxORavg: str, JF_num: str, FWQ_name: str, past_num: int,swwd_flag,year=0):  # 从csv数据中导出 需要特征 的全部数据
     pl = params_load(JF_name=JF_num, FWQ_name=FWQ_name, past_num=past_num, maxORavg=maxORavg)
 
     # 所在机房 全部数据
-    data_df = pl.all_csvs()  # 导入原始数据
+    data_df = pl.all_csvs(year=year)  # 导入原始数据
 
     ltdwd = pl.ltdwd_exportfrom_csv(data_df)  # 从原始csv数据 获取 所选机房所有组服务器 冷通道温度最大值均值
-    power_load = pl.fwqgl_exportfrom_csv(data_df)  # 从原始csv数据 获取 所选机房所有组服务器功率
-    sfwd = pl.sfwd_exportfrom_csv(data_df)  # 所选机房所有组服务器对应空调 送风温度1/4/总avg 数据
-    fj1_zs, fj2_zs = pl.zs_or_zsset_exportfrom_csv(data_df, False, '风')  # 所选机房所有组服务器对应空调 风机1转速
-    sfwd_set = get_variables_df(data_df, '送风温度设定')  # 获取 该机房 所有空调 送风温度设定
-    fj1zs_set, fj2zs_set = pl.zs_or_zsset_exportfrom_csv(data_df, True, '风')  # 所选机房所有组服务器对应空调 风机1转速设定,风机2转速设定 数据
-    swwd=get_variables_df(data_df,'室外环境温度')
+    # power_load = pl.fwqgl_exportfrom_csv(data_df)  # 从原始csv数据 获取 所选机房所有组服务器功率
+    # sfwd = pl.sfwd_exportfrom_csv(data_df)  # 所选机房所有组服务器对应空调 送风温度1/4/总avg 数据
+    # fj1_zs, fj2_zs = pl.zs_or_zsset_exportfrom_csv(data_df, False, '风')  # 所选机房所有组服务器对应空调 风机1转速
+    # sfwd_set = get_variables_df(data_df, '送风温度设定')  # 获取 该机房 所有空调 送风温度设定
+    # fj1zs_set, fj2zs_set = pl.zs_or_zsset_exportfrom_csv(data_df, True, '风')  # 所选机房所有组服务器对应空调 风机1转速设定,风机2转速设定 数据
+    # swwd=get_variables_df(data_df,'室外环境温度')
     print("get all ltdwd prediction need csv data")
 
     # 所选服务器 对应变量
     ltdwd = pl.create_ltdwd(ltdwd)  # 第fwq组服务器 冷通道温度数据
-    power_load = pl.create_powerload(power_load)
-    sfwd = pl.create_sfwd(sfwd, False)  # 第fwq组服务器对应空调 及 临近服务器对应空调 送风温度1总数据
-    fj_zs = pl.create_zs_or_zsset(fj1_zs, fj2_zs, False)
-    sfwd_set = pl.create_sfwd_set(sfwd_set, False)  # 得到 第fwq组服务器对应空调 及 临近服务器对应空调 送风温度设定
-    fjzs_set = pl.create_zs_or_zsset(fj1zs_set, fj2zs_set, False)
+    # power_load = pl.create_powerload(power_load)
+    # sfwd = pl.create_sfwd(sfwd, False)  # 第fwq组服务器对应空调 及 临近服务器对应空调 送风温度1总数据
+    # fj_zs = pl.create_zs_or_zsset(fj1_zs, fj2_zs, False)
+    # sfwd_set = pl.create_sfwd_set(sfwd_set, False)  # 得到 第fwq组服务器对应空调 及 临近服务器对应空调 送风温度设定
+    # fjzs_set = pl.create_zs_or_zsset(fj1zs_set, fj2zs_set, False)
     diff_time = get_variables_df(data_df, 'diff_time')
     print("get  %s fwq  prediction all need data" % pl.FWQ_name)
 
     # 获取 输入模型变量
     # features = pd.concat([ltdwd, power_load, sfwd, fj_zs, diff_time, sampleTime], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
     if(swwd_flag==False):
-        features = pd.concat([ltdwd, power_load, sfwd, fj_zs, diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
+        features = pd.concat([ltdwd,diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
+        # features = pd.concat([ltdwd, power_load, sfwd, fj_zs, diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
     else:
-        features = pd.concat([ltdwd, power_load, sfwd, fj_zs,swwd, diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
+        features = pd.concat([ltdwd,diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
+        # features = pd.concat([ltdwd, power_load, sfwd, fj_zs, swwd, diff_time], axis=1)  # 2022.11.25 删除 送风温度所有平均值，更改为功率信息
     #
     # features['sampleTime'] = pd.DataFrame(features['sampleTimeNum']).applymap(lambda x: strtime(x))
     # features['diff_time'] = features['sampleTimeNum'].diff().values
@@ -270,15 +279,16 @@ def all_data(maxORavg: str, JF_num: str, FWQ_name: str, past_num: int,swwd_flag)
 
     print("get all past times-series variabels")
 
-    set = pd.concat([sfwd_set, fjzs_set], axis=1)  # 送风温度和回风温度 设定
-    set = set.drop(set.head(past_num - 1).index)
+    # set = pd.concat([sfwd_set, fjzs_set], axis=1)  # 送风温度和回风温度 设定
+    # set = pd.concat([sfwd_set, fjzs_set], axis=1)  # 送风温度和回风温度 设定
+    # set = set.drop(set.head(past_num - 1).index)
 
-    set.reset_index(drop=True, inplace=True)
-    print("get all now this time variabels")
+    # set.reset_index(drop=True, inplace=True)
+    # print("get all now this time variabels")
 
     # 2022.12.4 更换为当前时刻变量
-    features = pd.concat([features, set], axis=1)  # concat时含有过去15的时序数据以及当前时刻的送风/回风温度设定
-    #features = pd.concat([features], axis=1)  # concat时含有过去15的时序数据
+    # features = pd.concat([features, set], axis=1)  # concat时含有过去15的时序数据以及当前时刻的送风/回风温度设定
+    features = pd.concat([features], axis=1)  # concat时含有过去15的时序数据
     X = pd.DataFrame(features)
     y = features[pl.FWQ_name + "组服务器冷通道温度的" + maxORavg]  # labels # "AB服务器冷通道温度的avg"/max
     print("generate features-X and labels-y successfully!")
@@ -287,9 +297,9 @@ def all_data(maxORavg: str, JF_num: str, FWQ_name: str, past_num: int,swwd_flag)
     return X, y
 
 
-def deal_odd_data(maxORavg: str, JF_num: str, FWQ_name:str, next_num,past_num,train_X_data_csv: str,train_y_data_csv: str,swwd_flag):
+def deal_odd_data(maxORavg: str, JF_num: str, FWQ_name:str, next_num,past_num,train_X_data_csv: str,train_y_data_csv: str,swwd_flag,year=0):
     pl = params_load(JF_name=JF_num, FWQ_name=FWQ_name, past_num=past_num, maxORavg=maxORavg)
-    X, y = all_data(maxORavg, JF_num, FWQ_name, past_num,swwd_flag)
+    X, y = all_data(maxORavg, JF_num, FWQ_name, past_num,swwd_flag,year=year)
     y = y[next_num:]
     y.reset_index(drop=True, inplace=True)
     y = y.to_frame(name="target")

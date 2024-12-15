@@ -53,6 +53,28 @@ def split_train_test(X, y):  # 需要归一化的分割数据集
 
     return train_X,test_X,train_y,test_y
 
+def split_train_test_year(train_X, train_y,test_X,test_y,scaler_x_file,scaler_y_file):  # 需要归一化的分割数据集
+
+    train_X = pd.read_csv(train_X)
+    train_y = pd.read_csv(train_y)
+    test_X = pd.read_csv(test_X)
+    test_y = pd.read_csv(test_y)
+
+    scale_X = StandardScaler()
+    scale_y = StandardScaler()
+    scale_train_X = scale_X.fit_transform(train_X)
+    scale_test_X = scale_X.transform(test_X)
+    scale_train_y = scale_y.fit_transform(train_y.values.reshape(train_y.shape[0], -1))
+    scale_test_y = scale_y.transform(test_y.values.reshape(test_y.shape[0], -1))
+
+    # print('scale_X info: \n scaler.mean_:\n {},\n scale_X.var : {}'.format(scale_X.mean_, scale_X.var_))
+    # print('\nscale_y info: \n scaler.mean_:\n {},\n scale_y.var : {}'.format(scale_y.mean_, scale_y.var_))
+    #
+    # print("test_y\n", test_y)
+    dump(scale_X, scaler_x_file,compress=True)
+    dump(scale_y, scaler_y_file,compress=True)
+    return scale_train_X, scale_test_X, scale_train_y, scale_test_y, scale_X, scale_y
+
 
 """### 模型"""
 
@@ -134,7 +156,7 @@ def gru_model(train_X):
 
 
 def train_model(model, train_X, train_y, test_X, test_y, scale_y,h5file, target: str, maxORmin: str, JF_name: str,
-                FWQ_name: str,model_name, input_epoch=200):
+                FWQ_name: str,model_name, next_num, input_epoch=100):
 
     checkpoint = ModelCheckpoint(h5file, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     callbacks_list = [checkpoint]
@@ -142,14 +164,14 @@ def train_model(model, train_X, train_y, test_X, test_y, scale_y,h5file, target:
         train_X = train_X.reshape(train_X.shape[0], train_X.shape[1], 1)
         test_X = test_X.reshape(test_X.shape[0], test_X.shape[1], 1)
 
-    history = model.fit(train_X, train_y, validation_data=(test_X, test_y), epochs=input_epoch, batch_size=256,
+    history = model.fit(train_X, train_y, validation_data=(test_X, test_y), epochs=input_epoch, batch_size=1024,
                         callbacks=callbacks_list, verbose=1)
 
     #draw(history, test_X, test_y, h5file, target, maxORmin, JF_name, FWQ_name,model_name)
-    draw(history, test_X, test_y, scale_y, h5file, target, maxORmin, JF_name, FWQ_name,model_name)
+    draw(history, test_X, test_y, scale_y, h5file, target, maxORmin, JF_name, FWQ_name,model_name,next_num)
 
 
-def draw(history, test_X, test_y,scale_y, h5file, target: str, maxORmin: str, JF_name: str, FWQ_name: str,model_name):
+def draw(history, test_X, test_y,scale_y, h5file, target: str, maxORmin: str, JF_name: str, FWQ_name: str,model_name,next_num):
     model = tf.keras.models.load_model(h5file)  # 导出模型之后看误差图
     #
     # sub_model = tf.keras.Model(inputs=model.input, outputs=model.get_layer('layer1').output)
@@ -177,7 +199,7 @@ def draw(history, test_X, test_y,scale_y, h5file, target: str, maxORmin: str, JF
     c = np.concatenate([test_y, test_pred], axis=1)
     c = pd.DataFrame(c)
     c = pd.concat([c, abs(c[0] - c[1])], axis=1)
-    np.savetxt(fname="./data.csv", X=c, fmt='%.2e', delimiter=',', encoding='utf-8')
+    np.savetxt(fname="data2.csv", X=c, fmt='%.2e', delimiter=',', encoding='utf-8')
     #print(c)
     # print("test_y[:-20]\n", test_y[:-20])
     # print("\ntest_pred[:-20]\n", test_pred[:-20])
@@ -192,9 +214,9 @@ def draw(history, test_X, test_y,scale_y, h5file, target: str, maxORmin: str, JF
     plt.figure()
     plt.plot(epochs, history.history['loss'], 'b', label='Training mse')
     plt.plot(epochs, history.history['val_loss'], 'r', label='Validation val_mse')
-    plt.title(target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' +model_name  +' Traing and Validation mse')
+    plt.title(target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' +model_name  +str(next_num)+' Traing and Validation mse')
     plt.legend()
-    plt.savefig('./pic/'+target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' +model_name  +' Traing and Validation mse.png')
+    plt.savefig('./pic/'+target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' +model_name  +str(next_num)+' Traing and Validation mse.png')
     #plt.show()
 
     # 只画测试集：预测-真实
@@ -209,14 +231,14 @@ def draw(history, test_X, test_y,scale_y, h5file, target: str, maxORmin: str, JF
     # Data in Test
     plt.plot([x for x in range(len(test_pred) - num, len(test_pred))], test_pred[len(test_pred) - num:len(test_pred)],
              linewidth=0.7, color='r', label='Pred')
-    plt.title(target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+' test'+' r2:'+str(round(r2_result,4))+' rmse:'+str(round(rmse_result,4)))
+    plt.title(target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+ str(next_num) +' test'+' r2:'+str(round(r2_result,4))+' rmse:'+str(round(rmse_result,4)))
     plt.legend(loc='best')
-    plt.savefig('./pic/'+target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+' test.png')
+    plt.savefig('./pic/'+target + maxORmin + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+ str(next_num) +' test.png')
     #plt.show()
 
 
 def test(test_X, test_y, h5file, target: str,maxORavg, JF_name: str,
-                FWQ_name: str,model_name,scaler_x_file,scaler_y_file):
+                FWQ_name: str,model_name,scaler_x_file,scaler_y_file,next_num):
     model = tf.keras.models.load_model(h5file)  # 导出模型之后看误差图
     scaler_x = load(scaler_x_file)
     scaler_y = load(scaler_y_file)
@@ -246,8 +268,8 @@ def test(test_X, test_y, h5file, target: str,maxORavg, JF_name: str,
     # Data in Test
     plt.plot([x for x in range(len(test_pred) - num, len(test_pred))], test_pred[len(test_pred) - num:len(test_pred)],
              linewidth=0.7, color='r', label='Test')
-    plt.title(target + maxORavg+'_' + JF_name + "JF " + 'KT_' + str(FWQ_name) + '_' + model_name + ' test' + ' r2:' + str(
+    plt.title(target + maxORavg+'_' + JF_name + "JF " + 'KT_' + str(FWQ_name) + '_' + model_name +str(next_num)+ ' test' + ' r2:' + str(
         round(r2_result, 4)) + ' rmse:' + str(round(rmse_result, 4)))
     plt.legend(loc='best')
-    plt.savefig('./pic/test2_27_'+target + maxORavg + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+' test.png')
+    plt.savefig('./pic/test2_27_'+target + maxORavg + '_' + JF_name + "JF " + FWQ_name + 'fwq_' + model_name+str(next_num)+' test.png')
     #plt.show()
