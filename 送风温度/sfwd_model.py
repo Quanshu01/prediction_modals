@@ -12,6 +12,8 @@ plt.rcParams['axes.unicode_minus'] = False
 tf.random.set_seed(42)
 np.random.seed(42)
 
+from tfkan.layers import Conv1DKAN
+from tfkan.layers import DenseKAN
 
 class Logger(object):
     def __init__(self, filename='default.log', stream=sys.stdout):
@@ -149,14 +151,36 @@ def gru_model(train_X):
     return model
 
 
+# KAN
+def kan_model(train_X):
+    train_X = train_X.reshape((train_X.shape[0], train_X.shape[1], 1))
+    input_shape = (train_X.shape[1], train_X.shape[2])
+
+    model = tf.keras.Sequential([
+        Conv1DKAN(64, kernel_size=3, strides=1, kan_kwargs={"grid_size": 3}),
+        Conv1DKAN(128, kernel_size=3, strides=1, kan_kwargs={"grid_size": 3}),
+        Conv1DKAN(64, kernel_size=3, strides=1, kan_kwargs={"grid_size": 3}),
+        tf.keras.layers.Conv1D(16, kernel_size=3, activation='relu'),
+        tf.keras.layers.Flatten(),
+        DenseKAN(128, grid_size=3),
+        tf.keras.layers.Dropout(0.3),
+        DenseKAN(64, grid_size=3),
+        DenseKAN(1, grid_size=3)
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model
+
 def train_model1(model, train_X, train_y, test_X, test_y, scale_y, h5file, target: str, JF_name: str,
                 KT: int,model_name, next_num,input_epoch=100):
     checkpoint = ModelCheckpoint(h5file, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     callbacks_list = [checkpoint]
     train_X = train_X.reshape(train_X.shape[0], train_X.shape[1], 1)
     test_X = test_X.reshape(test_X.shape[0], test_X.shape[1], 1)
+    if (model_name == "CNN" or model_name == "GRU" or model_name == "KAN"):
+        train_X = train_X.reshape(train_X.shape[0], train_X.shape[1], 1)
+        test_X = test_X.reshape(test_X.shape[0], test_X.shape[1], 1)
 
-    history = model.fit(train_X, train_y, validation_data=(test_X, test_y), epochs=input_epoch, batch_size=1024,
+    history = model.fit(train_X, train_y, validation_data=(test_X, test_y), epochs=input_epoch, batch_size=512,
                         callbacks=callbacks_list)
     draw1(history, test_X, test_y, scale_y, h5file, target, JF_name, KT,model_name,next_num)
 

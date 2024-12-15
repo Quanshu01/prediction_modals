@@ -1,9 +1,9 @@
 import os
 
 import ltdwd_export_csv_data_loader as dl
-#from ltdwd_export_csv_data_process import Logger
+# from ltdwd_export_csv_data_process import Logger
 import sys
-from ltdwd_export_csv_data_process import FWQ_202,FWQ_203,KT_toFwq_list_203,KT_toFwq_list_202
+from ltdwd_export_csv_data_process import FWQ_202, FWQ_203, KT_toFwq_list_203, KT_toFwq_list_202
 from ltdwd_model import Logger
 import sys
 import ltdwd_model as model
@@ -14,6 +14,7 @@ import random
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import warnings
+
 warnings.filterwarnings("ignore", category=Warning)
 
 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
@@ -24,22 +25,24 @@ np.random.seed(42)
 random.seed(42)
 
 
-
-def ltdwd_export_data(jf, fwq, target, next_num, past_num,swwd_flag,train_X_data_csv,train_y_data_csv,year):
+def ltdwd_export_data(jf, fwq, target, next_num, past_num, swwd_flag, train_X_data_csv, train_y_data_csv, year):
     # log/h5 命名: JF202_ABfwq_ltdwdAVG_next15
-    all_file_name = "JF" + jf + "_fwq_" + fwq +"_"+ target + '_' + maxORavg + "_next" + str(next_num)+"_"+model_name
+    all_file_name = "JF" + jf + "_fwq_" + fwq + "_" + target + '_' + maxORavg + "_next" + str(
+        next_num) + "_" + model_name
     # 打印预测需要信息
     # You are going to predict JF202_ABfwq_ltdwdAVG_next15
     print("You are going to predict " + all_file_name)
     # 生成训练数据，方便之后训练时间集中在模型本身，而不是加载数据
-    X, y = dl.deal_odd_data(maxORavg=maxORavg, JF_num=jf, FWQ_name=fwq, next_num=next_num,past_num=past_num,
-                            train_X_data_csv=train_X_data_csv,train_y_data_csv=train_y_data_csv,swwd_flag=swwd_flag,year=year)
+    X, y = dl.deal_odd_data(maxORavg=maxORavg, JF_num=jf, FWQ_name=fwq, next_num=next_num, past_num=past_num,
+                            train_X_data_csv=train_X_data_csv, train_y_data_csv=train_y_data_csv, swwd_flag=swwd_flag,
+                            year=year)
     return X, y
 
 
-def ltdwd_train(jf, fwq, target, next_num, past_num,train_X_data_csv, train_y_data_csv, test_X_data_csv=0,test_y_data_csv=0):
+def ltdwd_train(jf, fwq, target, next_num, past_num, train_X_data_csv, train_y_data_csv, test_X_data_csv=0,
+                test_y_data_csv=0):
     # log/h5 命名
-    all_file_name ="JF" + jf + "_fwq_" + fwq +"_"+ target + '_' + maxORavg +  '_' +  str(next_num)+"_"+model_name
+    all_file_name = "JF" + jf + "_fwq_" + fwq + "_" + target + '_' + maxORavg + '_' + str(next_num) + "_" + model_name
 
     # 打印在控制台的信息 保存至 log文件
     log_export_path_name = './log/'
@@ -54,26 +57,25 @@ def ltdwd_train(jf, fwq, target, next_num, past_num,train_X_data_csv, train_y_da
     # 2022.12.4 去当前时刻变量，仅保留当前时刻变量
     # /Users/kwok/Desktop/AI_for_env/data/train/y/ltdwd_max/past15_only/train_olddata_past15_202_AB_ltdwdmax_y.csv
 
-
     X = pd.read_csv(train_X_data_csv)
     y = pd.read_csv(train_y_data_csv)
     print("chosen JF" + jf + fwq + "fwq train data:\n" + "  X's shape:", X.shape, "\n  y's shape:", y.shape)
     h5_export_path_name = './h5/'
     h5file = h5_export_path_name + all_file_name + ".h5"  # 神经网络模型 h5文件 命名
     # 划分数据集（训练/测试）（归一化/不归一化）
-    scaler_x_file='./scaler/X/'+all_file_name+"_X.bin"
-    scaler_y_file='./scaler/y/'+all_file_name+"_y.bin"
+    scaler_x_file = './scaler/X/' + all_file_name + "_X.bin"
+    scaler_y_file = './scaler/y/' + all_file_name + "_y.bin"
 
     if test_X_data_csv == 0:
         train_X, test_X, train_y, test_y, scale_X, scale_y = model.split_train_test(X, y, scaler_x_file, scaler_y_file)
     else:
         train_X, test_X, train_y, test_y, scale_X, scale_y = model.split_train_test_year(train_X=train_X_data_csv,
-                                                                                    train_y=train_y_data_csv,
-                                                                                    test_X=test_X_data_csv,
-                                                                                   test_y=test_y_data_csv,
-                                                                                   scaler_x_file=scaler_x_file,
-                                                                                   scaler_y_file=scaler_y_file)
-    
+                                                                                         train_y=train_y_data_csv,
+                                                                                         test_X=test_X_data_csv,
+                                                                                         test_y=test_y_data_csv,
+                                                                                         scaler_x_file=scaler_x_file,
+                                                                                         scaler_y_file=scaler_y_file)
+
     # train_X,test_X,train_y,test_y = model.split_train_test(X, y)
     # train_X,test_X,train_y,test_y, scale_y=model.scaler_x_y(train_X,test_X,train_y,test_y,scaler_x_file,scaler_y_file)
     # train_X=X
@@ -91,13 +93,18 @@ def ltdwd_train(jf, fwq, target, next_num, past_num,train_X_data_csv, train_y_da
     elif model_name == 'GRU':
         m = model.gru_model(train_X)
         input_epoch = 100
+    # KAN
+    elif model_name == "KAN":
+        m = model.kan_model(train_X)
+        input_epoch = 100
 
-
-    model.train_model(m, train_X, train_y, test_X, test_y, scale_y, h5file, target, maxORavg, jf, fwq,model_name, next_num,input_epoch)
+    model.train_model(m, train_X, train_y, test_X, test_y, scale_y, h5file, target, maxORavg, jf, fwq, model_name,
+                      next_num, input_epoch)
     # model.train_model(m, train_X, train_y, test_X, test_y, h5file, target, maxORavg, jf, fwq,model_name, input_epoch)
     # model.test(train_X, train_y, h5file, target,maxORavg, jf,
     #             fwq,model_name,scaler_x_file,scaler_y_file)
     print("You are going to predict " + all_file_name)
+
 
 # def ltdwd_test():
 #     # log/h5 命名
@@ -162,17 +169,16 @@ if __name__ == '__main__':
     #                     #ltdwd_train()
     #                     ltdwd_test()
 
-
     target = 'ltdwd'
     maxORavg = 'avg'
     for jf in ['202']:
-        kt_list = [i for i in range(1,21)]
+        kt_list = [i for i in range(1, 21)]
         # 定义next_num的取值列表
-        next_num_list = [15]
+        next_num_list = [10, 15]
         # next_num_list = [5, 10, 15]
         # 定义model_name的取值列表
-        model_name_list = ['GRU']
-        # model_name_list = ['NN', 'GRU']c'c
+        model_name_list = ['KAN']
+        # model_name_list = ['NN', 'GRU']
         past_num = 15
         if (jf == '202'):
             fwq_list = FWQ_202
@@ -183,19 +189,24 @@ if __name__ == '__main__':
         for model_name in model_name_list:
             for next_num in next_num_list:
                 for fwq in fwq_list:
-                    if (fwq in ['LM']):
-                    # if (fwq in ['AB','EF','LM']):
-                    # if(not (jf=='203' and fwq in ['EF','GH'])):
+                    # if (fwq in ['LM']):
+                    if (fwq in ['AB','EF','LM']):
+                        # if(not (jf=='203' and fwq in ['EF','GH'])):
                         train_X_data_csv_2022 = f"./csv_data/X/{jf}_{fwq}_ltdwd_X_{next_num}_2022.csv"
                         train_y_data_csv_2022 = f"./csv_data/y/{jf}_{fwq}_ltdwd_y_{next_num}_2022.csv"
 
                         train_X_data_csv_2023 = f"./csv_data/X/{jf}_{fwq}_ltdwd_X_{next_num}_2023.csv"
                         train_y_data_csv_2023 = f"./csv_data/y/{jf}_{fwq}_ltdwd_y_{next_num}_2023.csv"
                         if model_name == 'NN':
-                            ltdwd_export_data(jf, fwq, target, next_num, past_num,swwd_flag=True,train_X_data_csv=train_X_data_csv_2022, train_y_data_csv=train_y_data_csv_2022,year=2022)
-                            ltdwd_export_data(jf, fwq, target, next_num, past_num,swwd_flag=True,train_X_data_csv=train_X_data_csv_2023, train_y_data_csv=train_y_data_csv_2023,year=2023)
+                            ltdwd_export_data(jf, fwq, target, next_num, past_num, swwd_flag=True,
+                                              train_X_data_csv=train_X_data_csv_2022,
+                                              train_y_data_csv=train_y_data_csv_2022, year=2022)
+                            ltdwd_export_data(jf, fwq, target, next_num, past_num, swwd_flag=True,
+                                              train_X_data_csv=train_X_data_csv_2023,
+                                              train_y_data_csv=train_y_data_csv_2023, year=2023)
 
-                        ltdwd_train(jf, fwq, target, next_num, past_num,train_X_data_csv_2022, train_y_data_csv_2022, test_X_data_csv=train_X_data_csv_2023, test_y_data_csv=train_y_data_csv_2023)
+                        ltdwd_train(jf, fwq, target, next_num, past_num, train_X_data_csv_2022, train_y_data_csv_2022,
+                                    test_X_data_csv=train_X_data_csv_2023, test_y_data_csv=train_y_data_csv_2023)
 
 
 

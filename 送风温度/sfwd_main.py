@@ -78,6 +78,10 @@ def sfwd_train(jf, kt, target, model_name, next_num, past_num, train_X_data_csv,
     elif model_name == 'GRU':
         m = model.gru_model(train_X)
         input_epoch = 100
+    # KAN
+    if model_name == "KAN":
+        m = model.kan_model(train_X)
+        input_epoch = 100
     #model.test(train_X, train_y, h5file, target, jf, kt, model_name,scaler_x_file,scaler_y_file)
 
     model.train_model1(m, train_X, train_y, test_X, test_y, scale_y, h5file, target,jf, kt,model_name,next_num,input_epoch)
@@ -149,16 +153,17 @@ if __name__ == '__main__':
         kt_list = [i for i in range(1,21)]
         # 定义next_num的取值列表
         # next_num_list = [15]
-        next_num_list = [10, 15]
+        next_num_list = [5, 10, 15]
         # next_num_list = [5, 10, 15]
         # 定义model_name的取值列表
-        model_name_list = ['GRU']
+        model_name_list = ['KAN']
         # model_name_list = ['NN', 'GRU']
         past_num = 15
 
         for model_name in model_name_list:
             for next_num in next_num_list:
                 for kt in kt_list:
+                    # if(kt in [1]):
                     if(kt in [1,4,10,12]):
                     # if (kt in [1, 2, 4, 8, 10, 12]):
                         train_X_data_csv_2022 = f"./csv_data/X/{jf}_{kt}_sfwd_X_{next_num}_2022.csv"
